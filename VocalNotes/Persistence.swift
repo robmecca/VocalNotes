@@ -14,17 +14,45 @@ struct PersistenceController {
     static let preview: PersistenceController = {
         let result = PersistenceController(inMemory: true)
         let viewContext = result.container.viewContext
-        for _ in 0..<10 {
-            let newItem = Item(context: viewContext)
-            newItem.timestamp = Date()
+        
+        // Create sample topics for preview
+        let workTopic = CDTopic(context: viewContext)
+        workTopic.id = UUID()
+        workTopic.name = "Work"
+        workTopic.colorHex = "#4ECDC4"
+        workTopic.iconName = "briefcase.fill"
+        workTopic.createdAt = Date()
+        
+        let personalTopic = CDTopic(context: viewContext)
+        personalTopic.id = UUID()
+        personalTopic.name = "Personal"
+        personalTopic.colorHex = "#FF6B6B"
+        personalTopic.iconName = "person.fill"
+        personalTopic.createdAt = Date()
+        
+        // Create sample notes for preview
+        for i in 0..<5 {
+            let newNote = CDNote(context: viewContext)
+            newNote.id = UUID()
+            newNote.createdAt = Date().addingTimeInterval(TimeInterval(-i * 86400)) // Spread across days
+            newNote.updatedAt = newNote.createdAt
+            newNote.rawText = "Sample note \(i + 1) for preview purposes"
+            newNote.cleanedText = "Sample note \(i + 1) for preview purposes."
+            newNote.audioDuration = Double(60 + i * 30)
+            
+            // Assign topics
+            if i % 2 == 0 {
+                newNote.topics = NSSet(object: workTopic)
+            } else {
+                newNote.topics = NSSet(object: personalTopic)
+            }
         }
+        
         do {
             try viewContext.save()
         } catch {
-            // Replace this implementation with code to handle the error appropriately.
-            // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
             let nsError = error as NSError
-            fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+            print("Preview data creation error: \(nsError), \(nsError.userInfo)")
         }
         return result
     }()
@@ -32,26 +60,29 @@ struct PersistenceController {
     let container: NSPersistentContainer
 
     init(inMemory: Bool = false) {
-        container = NSPersistentContainer(name: "VocalNotes")
+        container = NSPersistentCloudKitContainer(name: "VocalNotes")
+        
         if inMemory {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
+        } else {
+            // Configure CloudKit for sync
+            guard let description = container.persistentStoreDescriptions.first else {
+                fatalError("Failed to retrieve a persistent store description.")
+            }
+            
+            description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
+            description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
         }
+        
         container.loadPersistentStores(completionHandler: { (storeDescription, error) in
             if let error = error as NSError? {
                 // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-
-                /*
-                 Typical reasons for an error here include:
-                 * The parent directory does not exist, cannot be created, or disallows writing.
-                 * The persistent store is not accessible, due to permissions or data protection when the device is locked.
-                 * The device is out of space.
-                 * The store could not be migrated to the current model version.
-                 Check the error message to determine what the actual problem was.
-                 */
-                fatalError("Unresolved error \(error), \(error.userInfo)")
+                // In production, you should handle errors gracefully
+                print("Unresolved error \(error), \(error.userInfo)")
             }
         })
+        
         container.viewContext.automaticallyMergesChangesFromParent = true
+        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
     }
 }

@@ -1,0 +1,481 @@
+1. Product Requirements Document (PRD)
+
+1.1 Product Overview
+
+Product name (placeholder): VoiceThreads
+Platforms: iOS & iPadOS
+Tech stack: Swift + SwiftUI, Apple Speech framework, Apple Intelligence (where available), Core Data + CloudKit sync.
+
+Elevator pitch
+
+VoiceThreads is a voice-first thinking and note system that turns your spoken thoughts into clean, structured, searchable knowledge — organised by topics and visualised on a beautiful calendar timeline.
+
+⸻
+
+1.2 Problem & Opportunity
+
+Problem
+	•	People have great ideas when walking, commuting, or in between tasks, but:
+	•	Typing is too slow.
+	•	Raw voice memos are messy and unstructured.
+	•	Existing note apps don’t make it easy to see when and how thoughts evolve over time.
+
+Opportunity
+	•	Combine:
+	•	Fast voice capture
+	•	Apple Intelligence for clean-up & summarisation
+	•	Topic grouping
+	•	A calendar-based memory view (visually seeing your thinking history)
+	•	Target: high-value users (knowledge workers, researchers, creators, students).
+
+⸻
+
+1.3 Goals & Non-Goals
+
+Goals
+	•	Make voice the fastest, most natural way to capture ideas.
+	•	Automatically convert messy dictation into structured, readable notes.
+	•	Provide powerful organisation via:
+	•	Topics
+	•	Search
+	•	Calendar/time-based visualisation
+	•	Support both focused solo use and lightweight sharing/collaboration.
+
+Non-Goals (for v1)
+	•	No real-time multi-user editing (Google Docs style).
+	•	No complex task/project management (just basic action item extraction later).
+	•	No Android/web client in v1 (iOS/iPadOS only).
+
+⸻
+
+1.4 Target Users & Personas
+	1.	The Researcher / Knowledge Worker
+	•	Needs to capture ideas, hypotheses, meeting notes.
+	•	Wants organised archives, semantic search, time-based views.
+	2.	The Founder / Executive
+	•	Thinks in voice notes between meetings.
+	•	Needs quick summarisation, easy retrieval, shareable digests.
+	3.	The Student / Learner
+	•	Uses voice during lectures, revision walks, or reading.
+	•	Wants summaries and a “study calendar” of their thinking.
+
+⸻
+
+1.5 Key User Journeys
+	1.	Quick capture on the go
+	•	Open app → tap microphone → speak → stop → cleaned note appears under correct topic → visible on today’s calendar.
+	2.	Review what I thought this week
+	•	Open app → calendar view (week/month) → see days with notes highlighted → tap a day → see note list → open note with summary + raw transcript.
+	3.	Organise by conversation topic
+	•	Record a note → app suggests topic(s) → user assigns or creates new topic → later filters all notes by that topic.
+	4.	Share a set of notes
+	•	Select a topic or date range → generate shareable export (plain text / Markdown / PDF) → share via system sheet.
+
+⸻
+
+1.6 Functional Requirements
+
+1.6.1 Voice Dictation
+	•	Start/Stop recording
+	•	Big mic button on main screen.
+	•	Long-press or tap to start; tap again to stop.
+	•	Real-time transcription (optional)
+	•	Display live text while recording (configurable).
+	•	Multiple languages
+	•	At least support system language.
+	•	Handling interruptions
+	•	Gracefully handle phone calls, app going to background, etc.
+
+1.6.2 Note Enhancement with Apple Intelligence
+	•	After transcription, the user sees:
+	•	Raw text
+	•	Cleaned text (grammar fixes, filler removal, better punctuation)
+	•	Actions:
+	•	“Improve note” → run clean-up.
+	•	“Summarise” → short bullet list or paragraph summary.
+	•	Modes:
+	•	“Structured” view: headings, bullets, detected action items.
+	•	On devices without Apple Intelligence:
+	•	Fallback: basic local formatting (sentence splitting, capitalisation).
+
+1.6.3 Topics & Grouping
+	•	Topics
+	•	User can assign one or more topics per note.
+	•	App suggests topics based on content (e.g. via on-device keyword analysis).
+	•	Grouping
+	•	Notes can be viewed:
+	•	By topic
+	•	By date
+	•	By a combination (topic within a date range).
+	•	Topic management
+	•	Create, rename, delete topics.
+	•	Topic colour / icon (nice for calendar view).
+
+1.6.4 Calendar Visualisation (Key New Feature)
+Goal: Let users see their note-taking over time in a visually engaging way.
+
+Core calendar UI
+	•	Month view
+	•	Standard calendar grid.
+	•	Days with notes are highlighted (e.g. dots, badges, or colour shading).
+	•	Option: heatmap intensity based on number of notes or total duration.
+	•	Week / timeline view
+	•	Horizontal strip per day.
+	•	Notes shown as blocks or dots at approximate time of day (morning/afternoon/evening buckets).
+	•	Day detail view
+	•	Tapping a day opens:
+	•	List of notes sorted by time.
+	•	Grouped by topics (e.g., collapsible sections).
+
+Interactions
+	•	Tap a date → show note list.
+	•	Long press on a date:
+	•	New note for that day (backdated).
+	•	Quick “add text note” (no audio).
+	•	Filter:
+	•	By topic (show only notes for selected topics on calendar).
+	•	By “type” (e.g., meetings vs personal vs ideas – later feature).
+
+Visual aesthetics
+	•	Smooth animations on calendar navigation.
+	•	Topic colours reflected as small chips/dots.
+	•	Clean, minimal, not cluttered.
+
+1.6.5 Note List & Detail
+	•	Note list
+	•	For a given filter (all / topic / date range), display notes with:
+	•	First line of cleaned text
+	•	Date/time
+	•	Topic chips
+	•	Note detail
+	•	Tabs or segmented control:
+	•	“Summary”
+	•	“Cleaned”
+	•	“Raw”
+	•	Ability to:
+	•	Edit cleaned text
+	•	Change topics
+	•	Add manual tags
+	•	Play original audio
+
+1.6.6 Search
+	•	Full-text search over:
+	•	Cleaned text
+	•	Raw text (optional)
+	•	Topics
+	•	Filters:
+	•	Date range
+	•	Topic
+	•	Future: semantic search.
+
+1.6.7 Sharing & Export
+	•	Share a single note:
+	•	As text, Markdown, or PDF (v2).
+	•	Share a group:
+	•	All notes in a topic.
+	•	All notes in a date range.
+	•	Export settings:
+	•	Include/exclude raw transcript.
+	•	Include timestamps.
+
+1.6.8 Settings
+	•	Transcription language preference.
+	•	Audio storage policy (keep audio vs delete after processing).
+	•	Calendar default view (month or week).
+	•	Privacy options:
+	•	Local only vs iCloud sync.
+	•	Appearance:
+	•	Light/dark mode (respect system).
+
+1.7 Non-Functional Requirements
+	•	Performance
+	•	Start recording in < 1 second.
+	•	Display calendar view instantly (preloaded).
+	•	Offline
+	•	Basic capture + storage must work offline.
+	•	Apple Intelligence features require compatible device and OS (documented in onboarding).
+	•	Privacy
+	•	All notes stored locally + iCloud (if enabled).
+	•	Clear privacy policy: voice & notes are user-owned.
+	•	Reliability
+	•	Auto-save in case of crashes / interruptions.
+	•	Handling partial recordings.
+
+⸻
+
+1.8 Metrics & Success Criteria
+	•	D1/D7 retention.
+	•	Number of notes created per week.
+	•	Percentage of notes with topics assigned.
+	•	Calendar usage:
+	•	% of sessions where calendar is opened.
+	•	Average session length.
+
+⸻
+
+2. Product Roadmap Oriented to an Xcode Project
+
+Let’s structure this as concrete milestones you’d implement in Xcode.
+
+Tech baseline
+	•	Language: Swift 5+
+	•	UI: SwiftUI
+	•	Minimum OS: iOS 18 / iPadOS 18 (for Apple Intelligence) or 17 with limited features.
+	•	Data: Core Data + CloudKit integration.
+	•	Modules (folders in Xcode):
+	•	Models/
+	•	Services/ (SpeechService, IntelligenceService, StorageService)
+	•	Views/
+	•	ViewModels/
+	•	Utilities/
+
+⸻
+
+Milestone 0 – Project Setup (1–2 days)
+
+Goals
+	•	Create Xcode project for iOS/iPadOS with SwiftUI lifecycle.
+	•	Define basic architecture.
+
+Tasks
+	•	Create new Xcode project “VoiceThreads”.
+	•	Add targets: iOS + iPadOS (same codebase, adaptive UI).
+	•	Set up:
+	•	App entry point (@main).
+	•	Basic navigation structure using TabView:
+	•	Tab 1: Capture
+	•	Tab 2: Calendar
+	•	Tab 3: Topics / All notes
+	•	Decide & configure:
+	•	Core Data stack (with CloudKit option ticked).
+	•	Add placeholder models:
+struct Note: Identifiable {
+    let id: UUID
+    var createdAt: Date
+    var updatedAt: Date
+    var rawText: String
+    var cleanedText: String?
+    var summaryText: String?
+    var topics: [Topic.ID]
+    var audioFileURL: URL?
+}
+
+struct Topic: Identifiable {
+    let id: UUID
+    var name: String
+    var colorHex: String
+}
+
+Milestone 1 – Core Data Model & Basic List UI (3–5 days)
+
+Goals
+	•	Persist notes.
+	•	Show them in a simple list.
+
+Tasks
+	•	Define Core Data entities:
+	•	CDNote, CDTopic.
+	•	Implement StorageService:
+	•	CRUD for notes and topics.
+	•	Create simple “All Notes” screen:
+	•	List of notes ordered by createdAt.
+	•	Detail view with raw text.
+
+Deliverable
+	•	User can create dummy text notes (no audio yet) and see them in a list.
+
+⸻
+
+Milestone 2 – Voice Capture & Transcription (5–7 days)
+
+Goals
+	•	Enable real voice dictation and basic transcription.
+
+Tasks
+	•	Implement SpeechService using Apple’s Speech framework:
+	•	Request microphone + speech recognition permissions.
+	•	Start/stop recording.
+	•	Produce text.
+	•	Integrate into Capture tab:
+	•	Large mic button.
+	•	Show live transcription text.
+	•	When user stops:
+	•	Save rawText and audioFileURL into Core Data.
+
+Deliverable
+	•	User opens app, records audio, sees transcript and can find it in the notes list.
+
+⸻
+
+Milestone 3 – Text Enhancement & Summary (Apple Intelligence) (1–2 weeks)
+
+Goals
+	•	Clean up transcripts.
+	•	Generate summaries.
+
+Tasks
+	•	Implement IntelligenceService abstraction:
+	•	func clean(text: String) async throws -> String
+	•	func summarize(text: String) async throws -> String
+	•	For Apple Intelligence-capable devices:
+	•	Integrate with system APIs (once available in SDK).
+	•	For now, you can stub:
+	•	Use local rules to simulate (split sentences, capitalise, basic cleaning).
+	•	UI:
+	•	After transcription is saved, show “Enhance note” button.
+	•	Show cleanedText side-by-side or in a segmented view:
+	•	Segmented control: Raw / Clean / Summary.
+
+Deliverable
+	•	User can tap “Enhance note” and see a nicer version + summary.
+
+⸻
+
+Milestone 4 – Topics & Grouping (5–7 days)
+
+Goals
+	•	Users can categorise notes with topics.
+
+Tasks
+	•	Build Topic management UI:
+	•	Topics list.
+	•	Add / edit / delete topic.
+	•	In note detail view:
+	•	Topic chips.
+	•	Selector to assign/deselect topics.
+	•	Implement basic topic suggestions (v1):
+	•	Simple keyword matching in rawText or cleanedText.
+	•	Filters:
+	•	View: “Notes by topic”.
+	•	Filter on top of notes list.
+
+Deliverable
+	•	Notes can be organised into topics and filtered by them.
+
+⸻
+
+Milestone 5 – Calendar Visualisation (Key Milestone) (1–2 weeks)
+
+Goals
+	•	Beautiful, functional calendar to browse notes over time.
+
+Tasks
+	1.	Calendar data layer
+	•	Create a service or helper that:
+	•	Aggregates notes by day.
+	•	Exposes:
+
+struct DaySummary {
+    let date: Date
+    let noteCount: Int
+    let totalDuration: TimeInterval? // optional v2
+    let topicCounts: [Topic.ID: Int]
+}
+
+	•	Simple API:
+	•	func summaries(forMonthContaining date: Date) -> [DaySummary]
+
+    2.	Month view UI
+	•	SwiftUI calendar view:
+	•	Either custom grid using LazyVGrid or SwiftUI.Calendar (if you want to rely on new APIs).
+	•	Each cell:
+	•	Day number.
+	•	Dot(s) or badge for notes.
+	•	Colour intensity or dot count based on noteCount.
+	•	Tap on a cell:
+	•	Navigate/present “Day detail” view.
+	3.	Day detail view
+	•	Title: “23 November 2025”
+	•	Sections grouped by topic:
+	•	e.g. “Research”, “Personal”, etc.
+	•	Each note:
+	•	Time, snippet of cleaned text, topic chips.
+	•	Option to create a new note for that day (backdated text note).
+	4.	Week / timeline view (v1 light)
+	•	Toggle on calendar screen between “Month” and “Week”.
+	•	In Week view:
+	•	Horizontal ScrollView for days.
+	•	Each day shows a vertical list of note markers.
+	5.	Filters integration
+	•	On calendar screen:
+	•	Topic picker.
+	•	When a topic is selected, calendar only highlights days with notes for that topic.
+
+Deliverable
+	•	User can open a calendar tab, see which days have notes, tap a day and review their notes for that date.
+
+⸻
+
+Milestone 6 – iPadOS Layout & Refinements (1–2 weeks)
+
+Goals
+	•	Take advantage of iPad’s larger screen.
+
+Tasks
+	•	Implement adaptive layout using NavigationSplitView or custom splits:
+	•	Left: calendar view.
+	•	Right: day detail or note detail.
+	•	Add Apple Pencil niceties (optional v2):
+	•	Ability to scribble text into notes or highlight.
+
+Deliverable
+	•	iPad gets a proper multi-pane experience; iPhone remains single-column.
+
+⸻
+
+Milestone 7 – Polish, Onboarding, and Beta (2–3 weeks)
+
+Goals
+	•	Make the app feel finished and coherent.
+
+Tasks
+	•	Onboarding screens:
+	•	Explain voice capture, topics, calendar.
+	•	Ask consent for:
+	•	Microphone
+	•	Speech recognition
+	•	iCloud
+	•	Settings screen.
+	•	Empty states:
+	•	No notes yet.
+	•	No notes found for selected date/topic.
+	•	Add haptics and small animations:
+	•	Mic button press.
+	•	Calendar cell selection.
+	•	Basic analytics hooks (privacy-friendly; even just log counts to console for now).
+	•	Prepare for TestFlight:
+	•	App icon
+	•	Screenshots
+	•	Short description.
+
+Deliverable
+	•	TestFlight build ready to share with a small group.
+
+Milestone 8 – v1 Launch Prep (1–2 weeks)
+
+Goals
+	•	App Store ready.
+
+Tasks
+	•	Finalise:
+	•	App name & subtitle.
+	•	Long description focusing on:
+	•	Voice → Note → Calendar story.
+	•	Screenshots (including calendar UI).
+	•	App Preview video (optional).
+	•	Pricing:
+	•	v1 could be free or one-time low price; subscription later when “power features” arrive.
+	•	Decide v1 feature flag:
+	•	Maybe limit summarisations per day in free version.
+
+⸻
+
+If you’d like, next I can:
+	•	Turn this into:
+	•	A more formal PRD document outline you can paste into Notion/Confluence.
+	•	Or a set of Xcode “epic + tasks” you can literally follow sprint by sprint.
+	•	Or sketch wireframes in text for:
+	•	Capture screen
+	•	Calendar screen
+	•	Day detail screen
+so that you can go straight into SwiftUI.
