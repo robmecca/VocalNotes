@@ -11,13 +11,20 @@ struct TopicsView: View {
     @ObservedObject var notesViewModel: NotesViewModel
     @State private var showingAddTopic = false
     @State private var showingEditTopic: Topic?
+    @State private var selectedTopic: Topic?
     
     var body: some View {
         NavigationView {
+            // Topics List (Master)
             List {
                 ForEach(notesViewModel.topics) { topic in
                     Button(action: {
-                        notesViewModel.filterByTopic(topic)
+                        // Toggle selection - tap again to deselect
+                        if selectedTopic?.id == topic.id {
+                            selectedTopic = nil
+                        } else {
+                            selectedTopic = topic
+                        }
                     }) {
                         HStack(spacing: 16) {
                             // Color circle
@@ -44,11 +51,16 @@ struct TopicsView: View {
                             
                             Spacer()
                             
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            // Show checkmark when selected
+                            if selectedTopic?.id == topic.id {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.accentColor)
+                                    .font(.title3)
+                            }
                         }
                         .padding(.vertical, 8)
+                        .background(selectedTopic?.id == topic.id ? topic.color.opacity(0.1) : Color.clear)
+                        .cornerRadius(8)
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button(role: .destructive) {
@@ -81,12 +93,143 @@ struct TopicsView: View {
             .sheet(item: $showingEditTopic) { topic in
                 TopicEditorSheet(notesViewModel: notesViewModel, editingTopic: topic)
             }
+            
+            // Notes for selected topic (Detail)
+            if let topic = selectedTopic {
+                TopicNotesView(topic: topic, notesViewModel: notesViewModel)
+            } else {
+                // Placeholder when no topic is selected
+                VStack(spacing: 16) {
+                    Image(systemName: "tag.circle")
+                        .font(.system(size: 80))
+                        .foregroundColor(.secondary)
+                    
+                    Text("Select a Topic")
+                        .font(.title2.bold())
+                    
+                    Text("Tap a topic to see its related notes")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(.systemGroupedBackground))
+            }
         }
     }
     
     private func deleteTopic(_ topic: Topic) {
+        if selectedTopic?.id == topic.id {
+            selectedTopic = nil
+        }
         Task {
             await notesViewModel.deleteTopic(topic)
+        }
+    }
+}
+
+/// View showing notes for a specific topic
+struct TopicNotesView: View {
+    let topic: Topic
+    @ObservedObject var notesViewModel: NotesViewModel
+    @State private var topicNotes: [Note] = []
+    @State private var isLoading = false
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header with topic info
+            VStack(spacing: 12) {
+                Circle()
+                    .fill(topic.color)
+                    .frame(width: 60, height: 60)
+                    .overlay(
+                        Image(systemName: topic.iconName ?? "tag.fill")
+                            .foregroundColor(.white)
+                            .font(.system(size: 28))
+                    )
+                
+                Text(topic.name)
+                    .font(.title2.bold())
+                
+                Text("\(topicNotes.count) \(topicNotes.count == 1 ? "note" : "notes")")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+            .frame(maxWidth: .infinity)
+            .background(topic.color.opacity(0.1))
+            
+            // Notes list
+            Group {
+                if isLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if topicNotes.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "note.text")
+                            .font(.system(size: 60))
+                            .foregroundColor(.secondary)
+                        
+                        Text("No notes in this topic")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        
+                        Text("Notes assigned to \"\(topic.name)\" will appear here")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List {
+                        ForEach(topicNotes) { note in
+                            NavigationLink(destination: NoteDetailView(note: note, notesViewModel: notesViewModel)) {
+                                NoteRowView(note: note, topics: notesViewModel.getTopics(for: note))
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    deleteNote(note)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        }
+                    }
+                    .listStyle(.plain)
+                }
+            }
+        }
+        .navigationTitle(topic.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .background(Color(.systemGroupedBackground))
+        .task {
+            await loadNotes()
+        }
+        .onChange(of: notesViewModel.notes) { _, _ in
+            // Refresh when notes change
+            Task {
+                await loadNotes()
+            }
+        }
+    }
+    
+    private func loadNotes() async {
+        isLoading = true
+        do {
+            topicNotes = try StorageService.shared.fetchNotes(forTopic: topic.id)
+        } catch {
+            print("Failed to load notes for topic: \(error)")
+            topicNotes = []
+        }
+        isLoading = false
+    }
+    
+    private func deleteNote(_ note: Note) {
+        Task {
+            await notesViewModel.deleteNote(note)
+            await loadNotes()
         }
     }
 }
@@ -121,8 +264,34 @@ struct TopicEditorSheet: View {
     var body: some View {
         NavigationView {
             Form {
-                Section("Details") {
+                // Preview Section
+                Section {
+                    HStack {
+                        Spacer()
+                        VStack(spacing: 12) {
+                            Circle()
+                                .fill(selectedColor)
+                                .frame(width: 80, height: 80)
+                                .overlay(
+                                    Image(systemName: selectedIcon)
+                                        .foregroundColor(.white)
+                                        .font(.system(size: 36))
+                                )
+                            
+                            Text(name.isEmpty ? "Topic Preview" : name)
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                        }
+                        .padding(.vertical, 8)
+                        Spacer()
+                    }
+                } header: {
+                    Text("Preview")
+                }
+                
+                Section("Name") {
                     TextField("Topic Name", text: $name)
+                        .textInputAutocapitalization(.words)
                 }
                 
                 Section("Icon") {
@@ -131,14 +300,24 @@ struct TopicEditorSheet: View {
                             Button(action: {
                                 selectedIcon = icon
                             }) {
-                                Circle()
-                                    .fill(selectedIcon == icon ? selectedColor : Color(.systemGray5))
-                                    .frame(width: 50, height: 50)
-                                    .overlay(
-                                        Image(systemName: icon)
-                                            .foregroundColor(selectedIcon == icon ? .white : .gray)
-                                    )
+                                ZStack {
+                                    Circle()
+                                        .fill(selectedIcon == icon ? selectedColor : Color(.systemGray5))
+                                        .frame(width: 50, height: 50)
+                                    
+                                    Image(systemName: icon)
+                                        .foregroundColor(selectedIcon == icon ? .white : .gray)
+                                        .font(.system(size: 20))
+                                    
+                                    // Selection indicator
+                                    if selectedIcon == icon {
+                                        Circle()
+                                            .stroke(Color.primary, lineWidth: 2)
+                                            .frame(width: 54, height: 54)
+                                    }
+                                }
                             }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.vertical, 8)
@@ -150,14 +329,25 @@ struct TopicEditorSheet: View {
                             Button(action: {
                                 selectedColor = color
                             }) {
-                                Circle()
-                                    .fill(color)
-                                    .frame(width: 50, height: 50)
-                                    .overlay(
+                                ZStack {
+                                    Circle()
+                                        .fill(color)
+                                        .frame(width: 50, height: 50)
+                                    
+                                    // Selection indicator
+                                    if selectedColor == color {
                                         Circle()
-                                            .stroke(Color.primary, lineWidth: selectedColor == color ? 3 : 0)
-                                    )
+                                            .stroke(Color.primary, lineWidth: 3)
+                                            .frame(width: 54, height: 54)
+                                        
+                                        Image(systemName: "checkmark")
+                                            .foregroundColor(.white)
+                                            .font(.system(size: 16, weight: .bold))
+                                            .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+                                    }
+                                }
                             }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.vertical, 8)

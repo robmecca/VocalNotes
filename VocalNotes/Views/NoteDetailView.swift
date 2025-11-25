@@ -20,6 +20,11 @@ struct NoteDetailView: View {
     @State private var showingTopicPicker = false
     @State private var audioPlayer: AVAudioPlayer?
     @State private var isPlaying = false
+    @State private var audioPlayerDelegate = AudioPlayerDelegate()
+    @State private var showingAppleIntelligence = false
+    @State private var selectedAIAction: WritingToolsAction = .rewrite
+    @State private var aiText: String = ""
+    @State private var isGeneratingAI = false
     
     enum NoteTab: String, CaseIterable {
         case summary = "Summary"
@@ -77,42 +82,101 @@ struct NoteDetailView: View {
                         switch selectedTab {
                         case .summary:
                             if let summary = note.summaryText {
-                                Text(summary)
-                                    .font(.body)
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text(summary)
+                                        .font(.body)
+                                    
+                                    Button(action: { generateSummary() }) {
+                                        HStack {
+                                            Image(systemName: "arrow.clockwise")
+                                            Text("Regenerate Summary")
+                                        }
+                                        .font(.subheadline)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 8)
+                                        .background(Color.blue.opacity(0.1))
+                                        .foregroundColor(.blue)
+                                        .cornerRadius(8)
+                                    }
+                                    .disabled(isGeneratingAI)
+                                }
                             } else {
-                                VStack(spacing: 12) {
+                                VStack(spacing: 16) {
                                     Text("No summary available")
                                         .foregroundColor(.secondary)
                                     
-                                    Button(action: enhanceNote) {
-                                        Label("Generate Summary", systemImage: "sparkles")
+                                    Button(action: { generateSummary() }) {
+                                        HStack {
+                                            if isGeneratingAI {
+                                                ProgressView()
+                                                    .progressViewStyle(CircularProgressViewStyle())
+                                                    .scaleEffect(0.8)
+                                            } else {
+                                                Image(systemName: "text.quote")
+                                            }
+                                            Text(isGeneratingAI ? "Generating..." : "Generate Summary")
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding()
+                                        .background(Color.blue.opacity(0.1))
+                                        .foregroundColor(.blue)
+                                        .cornerRadius(10)
                                     }
-                                    .buttonStyle(.bordered)
-                                    .disabled(isEnhancing)
+                                    .disabled(isGeneratingAI)
                                 }
                             }
                             
                         case .cleaned:
                             if isEditing {
-                                TextEditor(text: $editedText)
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack {
+                                        Text("Editing cleaned text")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        Spacer()
+                                        if isEnhancing || isGeneratingAI {
+                                            ProgressView()
+                                                .scaleEffect(0.8)
+                                        }
+                                    }
+                                    .padding(.horizontal, 4)
+                                    
+                                    WritingToolsTextEditor(
+                                        text: $editedText,
+                                        isEnabled: true,
+                                        onShowWritingTools: { action in
+                                            print("✨ Writing Tools shown for: \(action)")
+                                        }
+                                    )
                                     .frame(minHeight: 200)
-                                    .padding(8)
-                                    .background(Color(.secondarySystemBackground))
-                                    .cornerRadius(8)
+                                }
                             } else {
                                 if let cleaned = note.cleanedText {
                                     Text(cleaned)
                                         .font(.body)
                                 } else {
-                                    VStack(spacing: 12) {
-                                        Text("No cleaned version available")
+                                    VStack(spacing: 16) {
+                                        Text("No enhanced version available")
                                             .foregroundColor(.secondary)
                                         
-                                        Button(action: enhanceNote) {
-                                            Label("Clean Text", systemImage: "sparkles")
+                                        Button(action: { generateCleanedText() }) {
+                                            HStack {
+                                                if isGeneratingAI {
+                                                    ProgressView()
+                                                        .progressViewStyle(CircularProgressViewStyle())
+                                                        .scaleEffect(0.8)
+                                                } else {
+                                                    Image(systemName: "wand.and.stars")
+                                                }
+                                                Text(isGeneratingAI ? "Generating..." : "Generate with AI")
+                                            }
+                                            .frame(maxWidth: .infinity)
+                                            .padding()
+                                            .background(Color.purple.opacity(0.1))
+                                            .foregroundColor(.purple)
+                                            .cornerRadius(10)
                                         }
-                                        .buttonStyle(.bordered)
-                                        .disabled(isEnhancing)
+                                        .disabled(isGeneratingAI)
                                     }
                                 }
                             }
@@ -172,11 +236,61 @@ struct NoteDetailView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 if selectedTab == .cleaned {
-                    Button(isEditing ? "Done" : "Edit") {
+                    HStack(spacing: 8) {
                         if isEditing {
-                            saveEdits()
-                        } else {
-                            startEditing()
+                            Menu {
+                                Button {
+                                    showAppleIntelligence(action: .rewrite)
+                                } label: {
+                                    Label("Rewrite", systemImage: "arrow.triangle.2.circlepath")
+                                }
+                                
+                                Button {
+                                    showAppleIntelligence(action: .makeConcise)
+                                } label: {
+                                    Label("Make Concise", systemImage: "text.alignleft")
+                                }
+                                
+                                Button {
+                                    showAppleIntelligence(action: .summarize)
+                                } label: {
+                                    Label("Summarize", systemImage: "text.quote")
+                                }
+                                
+                                Divider()
+                                
+                                Button {
+                                    showAppleIntelligence(action: .polish)
+                                } label: {
+                                    Label("Polish", systemImage: "wand.and.stars")
+                                }
+                                
+                                Button {
+                                    showAppleIntelligence(action: .proofread)
+                                } label: {
+                                    Label("Proofread", systemImage: "checkmark.circle")
+                                }
+                                
+                                Divider()
+                                
+                                Button {
+                                    polishTextWithAI()
+                                } label: {
+                                    Label("Quick Clean (Offline)", systemImage: "sparkles")
+                                }
+                            } label: {
+                                Image(systemName: "wand.and.stars.inverse")
+                                    .foregroundColor(.purple)
+                            }
+                            .disabled(isEnhancing)
+                        }
+                        
+                        Button(isEditing ? "Done" : "Edit") {
+                            if isEditing {
+                                saveEdits()
+                            } else {
+                                startEditing()
+                            }
                         }
                     }
                 }
@@ -188,6 +302,14 @@ struct NoteDetailView: View {
                 selectedTopics: $selectedTopics,
                 onSave: saveTopics
             )
+        }
+        .sheet(isPresented: $showingAppleIntelligence) {
+            AppleIntelligenceSheet(text: $aiText, action: selectedAIAction)
+                .onDisappear {
+                    if aiText != editedText && !aiText.isEmpty {
+                        editedText = aiText
+                    }
+                }
         }
         .onAppear {
             selectedTopics = Set(note.topics)
@@ -220,6 +342,59 @@ struct NoteDetailView: View {
         }
     }
     
+    private func polishTextWithAI() {
+        isEnhancing = true
+        Task {
+            do {
+                let polished = try await AppleIntelligenceService.shared.polishText(editedText)
+                editedText = polished
+            } catch {
+                print("Failed to polish text: \(error)")
+            }
+            isEnhancing = false
+        }
+    }
+    
+    private func showAppleIntelligence(action: WritingToolsAction) {
+        selectedAIAction = action
+        aiText = editedText
+        showingAppleIntelligence = true
+        
+        print("✨ Opening Apple Intelligence for: \(action)")
+    }
+    
+    private func generateCleanedText() {
+        isGeneratingAI = true
+        Task {
+            do {
+                var updatedNote = note
+                print("🤖 Generating cleaned text with AI...")
+                updatedNote.cleanedText = try await IntelligenceService.shared.cleanText(note.rawText)
+                await notesViewModel.updateNote(updatedNote)
+                print("✅ Cleaned text generated!")
+            } catch {
+                print("❌ Failed to generate cleaned text: \(error)")
+            }
+            isGeneratingAI = false
+        }
+    }
+    
+    private func generateSummary() {
+        isGeneratingAI = true
+        Task {
+            do {
+                var updatedNote = note
+                print("🤖 Generating summary with AI...")
+                updatedNote.summaryText = try await IntelligenceService.shared.summarize(note.rawText)
+                await notesViewModel.updateNote(updatedNote)
+                print("✅ Summary generated!")
+            } catch {
+                print("❌ Failed to generate summary: \(error)")
+            }
+            isGeneratingAI = false
+        }
+    }
+    
     private func saveTopics() {
         var updatedNote = note
         updatedNote.topics = Array(selectedTopics)
@@ -234,18 +409,80 @@ struct NoteDetailView: View {
     }
     
     private func toggleAudioPlayback() {
-        guard let audioURL = note.audioFileURL else { return }
+        guard let audioURL = note.audioFileURL else { 
+            print("❌ No audio URL available for this note")
+            return 
+        }
         
         if isPlaying {
+            print("⏸️ Stopping audio playback")
             audioPlayer?.stop()
             isPlaying = false
+            
+            // Reset audio session
+            do {
+                try AVAudioSession.sharedInstance().setActive(false)
+            } catch {
+                print("⚠️ Failed to deactivate audio session: \(error)")
+            }
         } else {
             do {
+                print("🎵 Attempting to play audio from: \(audioURL.path)")
+                
+                // Check if file exists
+                guard FileManager.default.fileExists(atPath: audioURL.path) else {
+                    print("❌ Audio file does not exist at path: \(audioURL.path)")
+                    print("📂 Checking parent directory...")
+                    let parentDir = audioURL.deletingLastPathComponent()
+                    if let files = try? FileManager.default.contentsOfDirectory(at: parentDir, includingPropertiesForKeys: nil) {
+                        print("📁 Files in directory:")
+                        files.forEach { print("  - \($0.lastPathComponent)") }
+                    }
+                    return
+                }
+                
+                // Get file size
+                if let attrs = try? FileManager.default.attributesOfItem(atPath: audioURL.path),
+                   let fileSize = attrs[.size] as? UInt64 {
+                    print("📄 Audio file size: \(fileSize) bytes")
+                }
+                
+                // Configure audio session for playback
+                let audioSession = AVAudioSession.sharedInstance()
+                try audioSession.setCategory(.playback, mode: .default, options: [])
+                try audioSession.setActive(true, options: [])
+                print("✅ Audio session configured for playback")
+                
+                // Create and configure player
                 audioPlayer = try AVAudioPlayer(contentsOf: audioURL)
-                audioPlayer?.play()
-                isPlaying = true
-            } catch {
-                print("Failed to play audio: \(error)")
+                audioPlayer?.delegate = audioPlayerDelegate
+                
+                // Set up completion handler
+                audioPlayerDelegate.onFinish = { [self] in
+                    Task { @MainActor in
+                        self.isPlaying = false
+                        print("✅ Audio playback finished")
+                    }
+                }
+                
+                audioPlayer?.prepareToPlay()
+                print("⏳ Audio player prepared, duration: \(audioPlayer?.duration ?? 0)s")
+                
+                let success = audioPlayer?.play() ?? false
+                
+                if success {
+                    isPlaying = true
+                    print("▶️ Audio playback started successfully")
+                } else {
+                    print("❌ Failed to start audio playback (play() returned false)")
+                }
+            } catch let error as NSError {
+                print("❌ Failed to play audio: \(error.localizedDescription)")
+                print("   Domain: \(error.domain), Code: \(error.code)")
+                print("   Audio URL: \(audioURL)")
+                if let underlyingError = error.userInfo[NSUnderlyingErrorKey] as? NSError {
+                    print("   Underlying: \(underlyingError.localizedDescription)")
+                }
             }
         }
     }
@@ -315,6 +552,14 @@ struct TopicPickerSheet: View {
                 }
             }
         }
+    }
+}
+
+class AudioPlayerDelegate: NSObject, AVAudioPlayerDelegate {
+    var onFinish: (() -> Void)?
+    
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        onFinish?()
     }
 }
 

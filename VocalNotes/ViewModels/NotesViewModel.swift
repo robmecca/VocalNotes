@@ -76,13 +76,52 @@ class NotesViewModel: ObservableObject {
     
     // MARK: - Note Management
     
-    func createNote(rawText: String, audioURL: URL?, duration: TimeInterval?) async {
+    func createNote(rawText: String, cleanedText: String? = nil, summaryText: String? = nil, audioURL: URL?, duration: TimeInterval?) async {
         do {
-            let note = Note(
+            // Check if auto-enhance is enabled
+            let autoEnhance = UserDefaults.standard.bool(forKey: "autoEnhanceNotes")
+            
+            // Use provided texts or generate if auto-enhance is on
+            let finalCleanedText: String?
+            let finalSummary: String?
+            
+            if cleanedText != nil {
+                // User already enhanced manually
+                finalCleanedText = cleanedText
+            } else if autoEnhance {
+                // Auto-enhance
+                finalCleanedText = try? await intelligenceService.cleanText(rawText)
+            } else {
+                finalCleanedText = nil
+            }
+            
+            if summaryText != nil {
+                // User already summarized manually
+                finalSummary = summaryText
+            } else if autoEnhance {
+                // Auto-summarize
+                finalSummary = try? await intelligenceService.summarize(rawText)
+            } else {
+                finalSummary = nil
+            }
+            
+            var note = Note(
                 rawText: rawText,
+                cleanedText: finalCleanedText,
+                summaryText: finalSummary,
                 audioFileURL: audioURL,
                 audioDuration: duration
             )
+            
+            // Suggest topics if none assigned
+            let suggestedTopics = await intelligenceService.suggestTopics(
+                for: rawText,
+                existingTopics: topics
+            )
+            if !suggestedTopics.isEmpty {
+                note.topics = suggestedTopics.prefix(3).map { $0.id }
+            }
+            
             try storageService.createNote(note)
             try await loadNotes()
         } catch {

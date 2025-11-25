@@ -68,10 +68,24 @@ class SpeechService: NSObject, ObservableObject {
         recognitionTask?.cancel()
         recognitionTask = nil
         
-        // Configure audio session
+        // Configure audio session FIRST before any audio operations
         let audioSession = AVAudioSession.sharedInstance()
-        try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+        try audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
         try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+        
+        // Setup audio engine BEFORE recognition request
+        audioEngine = AVAudioEngine()
+        guard let audioEngine = audioEngine else {
+            throw SpeechError.audioEngineFailed
+        }
+        
+        // Verify input node is available (important for simulator)
+        guard audioEngine.inputNode.inputFormat(forBus: 0).channelCount > 0 else {
+            print("⚠️ No audio input available. Using AVAudioRecorder fallback.")
+            // Fall back to AVAudioRecorder only
+            try startAudioRecorderOnly()
+            return
+        }
         
         // Setup recognition request
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
@@ -80,14 +94,13 @@ class SpeechService: NSObject, ObservableObject {
         }
         recognitionRequest.shouldReportPartialResults = true
         
-        // Setup audio engine
-        audioEngine = AVAudioEngine()
-        guard let audioEngine = audioEngine else {
-            throw SpeechError.audioEngineFailed
-        }
-        
         let inputNode = audioEngine.inputNode
         let recordingFormat = inputNode.outputFormat(forBus: 0)
+        
+        // Validate recording format
+        guard recordingFormat.channelCount > 0 && recordingFormat.sampleRate > 0 else {
+            throw SpeechError.audioEngineFailed
+        }
         
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
             recognitionRequest.append(buffer)
@@ -96,6 +109,7 @@ class SpeechService: NSObject, ObservableObject {
         // Setup audio recording to file
         setupAudioRecorder()
         
+        // Prepare and start
         audioEngine.prepare()
         try audioEngine.start()
         audioRecorder?.record()
@@ -122,6 +136,15 @@ class SpeechService: NSObject, ObservableObject {
         }
     }
     
+    // Fallback for when AVAudioEngine isn't available (e.g., simulator)
+    private func startAudioRecorderOnly() throws {
+        setupAudioRecorder()
+        audioRecorder?.record()
+        recordingStartTime = Date()
+        transcribedText = ""
+        isRecording = true
+    }
+    
     func stopRecording() -> RecordingResult? {
         stopRecordingInternal()
         
@@ -140,11 +163,28 @@ class SpeechService: NSObject, ObservableObject {
     }
     
     private func stopRecordingInternal() {
-        audioEngine?.stop()
-        audioEngine?.inputNode.removeTap(onBus: 0)
+        // Stop audio engine if it was used
+        if let engine = audioEngine {
+            engine.stop()
+            // Only remove tap if the input node has taps installed
+            if engine.inputNode.numberOfInputs > 0 {
+                engine.inputNode.removeTap(onBus: 0)
+            }
+        }
+        
+        // Stop audio recorder
         audioRecorder?.stop()
+        
+        // Clean up recognition
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
+        
+        // Deactivate audio session
+        do {
+            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        } catch {
+            print("⚠️ Failed to deactivate audio session: \(error)")
+        }
         
         isRecording = false
         audioEngine = nil

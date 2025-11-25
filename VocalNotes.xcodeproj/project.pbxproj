@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+	4EC056502ED53F9A00C64AC5 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 4EC0564F2ED53F9A00C64AC5 /* WhisperKit */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		A1DD203B2ED39C9400EE2D3A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -48,13 +52,14 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		A1DD20252ED39C9300EE2D3A /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
+	A1DD20252ED39C9300EE2D3A /* Frameworks */ = {
+		isa = PBXFrameworksBuildPhase;
+		buildActionMask = 2147483647;
+		files = (
+			4EC056502ED53F9A00C64AC5 /* WhisperKit in Frameworks */,
+		);
+		runOnlyForDeploymentPostprocessing = 0;
+	};
 		A1DD20372ED39C9400EE2D3A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -72,16 +77,16 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		A1DD201F2ED39C9300EE2D3A = {
-			isa = PBXGroup;
-			children = (
-				A1DD202A2ED39C9300EE2D3A /* VocalNotes */,
-				A1DD203D2ED39C9400EE2D3A /* VocalNotesTests */,
-				A1DD20472ED39C9400EE2D3A /* VocalNotesUITests */,
-				A1DD20292ED39C9300EE2D3A /* Products */,
-			);
-			sourceTree = "<group>";
-		};
+	A1DD201F2ED39C9300EE2D3A = {
+		isa = PBXGroup;
+		children = (
+			A1DD202A2ED39C9300EE2D3A /* VocalNotes */,
+			A1DD203D2ED39C9400EE2D3A /* VocalNotesTests */,
+			A1DD20472ED39C9400EE2D3A /* VocalNotesUITests */,
+			A1DD20292ED39C9300EE2D3A /* Products */,
+		);
+		sourceTree = "<group>";
+	};
 		A1DD20292ED39C9300EE2D3A /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -110,10 +115,11 @@
 			fileSystemSynchronizedGroups = (
 				A1DD202A2ED39C9300EE2D3A /* VocalNotes */,
 			);
-			name = VocalNotes;
-			packageProductDependencies = (
-			);
-			productName = VocalNotes;
+		name = VocalNotes;
+		packageProductDependencies = (
+			4EC0564F2ED53F9A00C64AC5 /* WhisperKit */,
+		);
+		productName = VocalNotes;
 			productReference = A1DD20282ED39C9300EE2D3A /* VocalNotes.app */;
 			productType = "com.apple.product-type.application";
 		};
@@ -195,6 +201,9 @@
 			);
 			mainGroup = A1DD201F2ED39C9300EE2D3A;
 			minimizedProjectReferenceProxies = 1;
+		packageReferences = (
+			4EC0564E2ED53D7700C64AC5 /* XCRemoteSwiftPackageReference "WhisperKit" */,
+		);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A1DD20292ED39C9300EE2D3A /* Products */;
 			projectDirPath = "";
@@ -400,6 +409,8 @@
 				DEVELOPMENT_TEAM = LVV37FVDA8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "VocalNotes needs access to your microphone to record voice notes.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "VocalNotes uses speech recognition to transcribe your voice notes into text, enabling automatic topic detection and searchable notes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -432,6 +443,8 @@
 				DEVELOPMENT_TEAM = LVV37FVDA8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "VocalNotes needs access to your microphone to record voice notes.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "VocalNotes uses speech recognition to transcribe your voice notes into text, enabling automatic topic detection and searchable notes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -578,6 +591,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+	4EC0564E2ED53D7700C64AC5 /* XCRemoteSwiftPackageReference "WhisperKit" */ = {
+		isa = XCRemoteSwiftPackageReference;
+		repositoryURL = "https://github.com/argmaxinc/WhisperKit";
+		requirement = {
+			kind = branch;
+			branch = main;
+		};
+	};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		4EC0564F2ED53F9A00C64AC5 /* WhisperKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4EC0564E2ED53D7700C64AC5 /* XCRemoteSwiftPackageReference "WhisperKit" */;
+			productName = WhisperKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A1DD20202ED39C9300EE2D3A /* Project object */;
 }

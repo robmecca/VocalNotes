@@ -40,6 +40,12 @@ struct MainTabView: View {
                     Label("Topics", systemImage: "folder.fill")
                 }
                 .tag(3)
+            
+            SettingsView()
+                .tabItem {
+                    Label("Settings", systemImage: "gear")
+                }
+                .tag(4)
         }
         .tint(.accentColor)
         .task {
